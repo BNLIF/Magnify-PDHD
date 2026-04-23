@@ -33,13 +33,13 @@ Data::Data(const char* filename, double threshold, const char* frame, int rebin)
     	throw runtime_error(msg.c_str());
     }
 
-    // load_runinfo first so anodeNo is available for all histogram name lookups
+    // load_runinfo first so apaNo is available for all histogram name lookups
     load_runinfo();
 
-    // suffix is the anode number when present (e.g. "7"), otherwise empty string
-    TString suf = (anodeNo >= 0) ? Form("%d", anodeNo) : "";
-    if (anodeNo >= 0)
-        cout << "Anode number: " << anodeNo << " (using suffix \"" << suf << "\")" << endl;
+    // suffix is the apa number when present (e.g. "7"), otherwise empty string
+    TString suf = (apaNo >= 0) ? Form("%d", apaNo) : "";
+    if (apaNo >= 0)
+        cout << "APA number: " << apaNo << " (using suffix \"" << suf << "\")" << endl;
 
     bad_channels = new BadChannels( (TTree*)rootFile->Get("T_bad" + suf) );
 
@@ -61,7 +61,7 @@ Data::Data(const char* filename, double threshold, const char* frame, int rebin)
         decon_ref[iplane] = dynamic_cast<TH2*>(rootFile->Get(decon_name[iplane]));
     }
 
-    // anodes 4-7 have 4x higher gain than 0-3, scale down accordingly
+    // APAs 4-7 have 4x higher gain than 0-3, scale down accordingly
     double raw_scale = 1.0;  // For top vs. bottm electronics, do we need to scale the raw differently? The overall gain, as well as the noise level ... 
 
     // std::cout << "Loading histograms with raw_scale = " << raw_scale << " and threshold = " << threshold << " " << rebin << endl;
@@ -100,14 +100,14 @@ Data::Data(const char* filename, double threshold, const char* frame, int rebin)
 
 void Data::load_runinfo()
 {
-    anodeNo = -1;
+    apaNo = -1;
     total_time_bin = 0;
     TTree *t = (TTree*)rootFile->Get("Trun");
     if (t) {
         t->SetBranchAddress("runNo", &runNo);
         t->SetBranchAddress("subRunNo", &subRunNo);
         t->SetBranchAddress("eventNo", &eventNo);
-        if (t->GetBranch("anodeNo"))       t->SetBranchAddress("anodeNo", &anodeNo);
+        if (t->GetBranch("anodeNo"))       t->SetBranchAddress("anodeNo", &apaNo);
         if (t->GetBranch("total_time_bin")) t->SetBranchAddress("total_time_bin", &total_time_bin);
         t->GetEntry(0);
     }

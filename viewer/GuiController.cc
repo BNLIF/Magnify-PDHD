@@ -62,8 +62,8 @@ GuiController::GuiController(const TGWindow *p, int w, int h, const char* fn, do
         regTLowE[p]  = regTHighE[p]  = nullptr;
         for (int e = 0; e < 4; ++e) regionBoundary[p][e] = nullptr;
     }
-    mw->SetWindowName(TString::Format("Magnify: run %i, sub-run %i, event %i, anode %i",
-        data->runNo, data->subRunNo, data->eventNo, data->anodeNo));
+    mw->SetWindowName(TString::Format("Magnify: run %i, sub-run %i, event %i, apa %i",
+        data->runNo, data->subRunNo, data->eventNo, data->apaNo));
 
     for (int i=0; i<6; i++) {
         vw->can->cd(i+1);

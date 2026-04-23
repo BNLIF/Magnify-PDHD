@@ -31,7 +31,7 @@ public:
     int runNo;
     int subRunNo;
     int eventNo;
-    int anodeNo;
+    int apaNo;
     int total_time_bin;
     double denoised_scaling;  // scaling applied to h*_threshold for denoised wfs
     double decon_scaling;     // scaling applied to h*_threshold for decon wfs
