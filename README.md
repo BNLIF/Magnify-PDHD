@@ -45,6 +45,20 @@ cd scripts/
 root -l loadClasses.C Magnify.C
 ```
 
+### RMS & FFT noise analysis (batch)
+
+Compute per-channel noise RMS and frequency spectra for one or more Magnify files:
+
+```bash
+./scripts/run_rms_analysis.sh input_data/magnify-run.root
+# Produces: input_data/magnify-run.root.rms.root
+```
+
+The cache file contains per-plane RMS TTrees (`rms_u/v/w`) and FFT TH2Fs
+(`fft_u/v/w`, channel × frequency in MHz).  It is loaded automatically by the
+viewer when you click **RMS Analysis** in the control bar.  See `docs/RMS_FFT.md`
+for the full workflow and panel description.
+
 ### (Experimental feature) Channel Scan
 ```
 ./channelscan.sh path/to/rootfile
