@@ -126,24 +126,36 @@ Opened via the **RMS Analysis** button in the control bar.
 
 ---
 
-## Distribution canvas (7 panels)
+## Distribution canvas (9 panels)
 
 Opened by **Show distribution**.  Layout (1100 × 900 px):
 
 ```
-┌──────────────────────────────────────────────┐
-│  Top:  Per-channel noise RMS distribution     │  ← full width; U/V/W overlaid
-├───────────────┬──────────────┬───────────────┤
-│  Mid-U        │  Mid-V       │  Mid-W        │  ← RMS vs channel scatter
-│  (rms_mid_u)  │  (rms_mid_v) │  (rms_mid_w)  │
-├───────────────┼──────────────┼───────────────┤
-│  Bot-U        │  Bot-V       │  Bot-W        │  ← FFT spectrum for selected channel
-│  (rms_bot_u)  │  (rms_bot_v) │  (rms_bot_w)  │
-└───────────────┴──────────────┴───────────────┘
+┌───────────────┬───────────────┬───────────────┐
+│  Top-left     │  Top-mid      │  Top-right    │  ← top row
+│  RMS dist     │  RMS vs len   │  RMS vs len   │
+│  (rms_top_dist│  U + V        │  W only       │
+│   U/V/W over.)│ (rms_top_uv)  │ (rms_top_w)   │
+├───────────────┼───────────────┼───────────────┤
+│  Mid-U        │  Mid-V        │  Mid-W        │  ← RMS vs channel scatter
+│  (rms_mid_u)  │  (rms_mid_v)  │  (rms_mid_w)  │
+├───────────────┼───────────────┼───────────────┤
+│  Bot-U        │  Bot-V        │  Bot-W        │  ← FFT spectrum for selected channel
+│  (rms_bot_u)  │  (rms_bot_v)  │  (rms_bot_w)  │
+└───────────────┴───────────────┴───────────────┘
 ```
 
-**Top pad** — stacked histogram of `rms_final` values, one `TH1F` per plane
-(U = red, V = blue, W = green), auto-scaled Y axis, grid on.
+**Top-left pad** (`rms_top_dist`) — stacked histogram of `rms_final` values,
+one `TH1F` per plane (U = red, V = blue, W = green), auto-scaled Y axis, grid on.
+
+**Top-middle pad** (`rms_top_uv`) — scatter plot of `rms_final` vs wire length (cm),
+U (red) and V (blue) overlaid.  Wire lengths are read from the `T_geo` tree in the
+input file.  If the tree is absent the pad shows an empty axis labelled
+"T_geo not loaded".
+
+**Top-right pad** (`rms_top_w`) — same scatter for the W (collection) plane only
+(green).  W wires are ~constant length in PDHD, so the scatter is roughly vertical.
+Falls back to "T_geo not loaded" when the tree is absent.
 
 **Middle pads** — scatter graph of `rms_final` vs global channel number,
 one pad per plane.  Clicking a channel in a middle pad:
