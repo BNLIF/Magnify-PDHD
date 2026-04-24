@@ -4,16 +4,22 @@
 #include "TGFrame.h"
 #include "RQ_OBJECT.h"
 #include "TString.h"
+#include "RmsAnalyzer.h"
 
 class MainWindow;
 class ViewWindow;
 class ControlWindow;
 class Data;
 class TH1F;
+class TH2F;
+class TCanvas;
 class TGMainFrame;
 class TRootEmbeddedCanvas;
 class TGNumberEntry;
+class TGLabel;
+class TGCheckButton;
 class TLine;
+class TPad;
 
 
 class GuiController
@@ -60,6 +66,15 @@ public:
     void EraseRegion();
     void ClearRegion();
 
+    // RMS analysis panel
+    void ShowRmsWindow();
+    void HideRmsWindow();
+    void ComputeRms();
+    void LoadRmsFromFile();
+    void ShowRmsDistribution();
+    void ToggleRmsOverlay();
+    void ProcessRmsCanvasEvent(Int_t ev, Int_t x, Int_t y, TObject* selected);
+
     TString OpenDialog();
 
     MainWindow *mw;
@@ -83,6 +98,23 @@ private:
     // Trapezoid boundary lines drawn on the decon pads [plane][edge]
     // edge: 0=left(start), 1=right(end), 2=top, 3=bottom
     TLine* regionBoundary[3][4];
+
+    // RMS analysis state
+    TGMainFrame*          rmsWindow;
+    TGLabel*              rmsStatusLabel;
+    TGCheckButton*        rmsOverlayCheck;
+    TCanvas*              rmsDistCanvas;
+    std::vector<ChannelRms> rmsResults[3];  // per-plane results (U=0,V=1,W=2)
+    bool                  rmsLoaded;
+
+    // FFT spectra: TH2F(channel × freq-MHz), one per plane; nullptr if not loaded
+    TH2F*  fftSpec[3];
+    int    fftSelectedCh[3];  // last-clicked channel per plane (-1 = none)
+
+    // Named pads inside rmsDistCanvas (owned by the canvas, not us)
+    TPad*  rmsTopPad;
+    TPad*  rmsMidPad[3];
+    TPad*  rmsBotPad[3];
 };
 
 #endif
