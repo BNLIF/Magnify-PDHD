@@ -1131,10 +1131,8 @@ void GuiController::ShowRmsDistribution()
                 TString::Format("%s plane FFT (click channel above); freq (MHz); |F| (ADC)",
                     planeLetter[p]),
                 10, 0, RmsAnalyzer::kNyquistMHz);
-            hFrame->SetMinimum(1e-4);
-            hFrame->GetYaxis()->SetMoreLogLabels();
+            hFrame->SetMinimum(0);
             hFrame->Draw("axis");
-            rmsBotPad[p]->SetLogy();
         } else {
             TH1F* hFrame = new TH1F(frameName,
                 TString::Format("%s plane — no FFT in cache; freq (MHz); |F| (ADC)",
@@ -1192,10 +1190,8 @@ void GuiController::ProcessRmsCanvasEvent(Int_t ev, Int_t x, Int_t y, TObject* s
 
         rmsBotPad[plane]->cd();
         rmsBotPad[plane]->Clear();
-        hSlice->SetMinimum(1e-4);
-        hSlice->GetYaxis()->SetMoreLogLabels();
+        hSlice->SetMinimum(0);
         hSlice->Draw("hist");
-        rmsBotPad[plane]->SetLogy();
         rmsBotPad[plane]->SetGridx(); rmsBotPad[plane]->SetGridy();
         rmsBotPad[plane]->Modified();
         rmsBotPad[plane]->Update();
