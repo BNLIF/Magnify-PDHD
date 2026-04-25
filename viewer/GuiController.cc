@@ -37,10 +37,15 @@
 #include "TPad.h"
 #include "TH1D.h"
 
+#include "TGComboBox.h"
+#include "TSystemDirectory.h"
+#include "TSystemFile.h"
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <tuple>
 using namespace std;
 
 
@@ -97,6 +102,87 @@ GuiController::GuiController(const TGWindow *p, int w, int h, const char* fn, do
         TH1F *h = data->wfs.at(i+3)->Draw1D(chanNo, "same"); // draw calib
         h->SetLineColor(kRed);
         hCurrent[i] = h;
+    }
+
+    // Cache startup args so ReloadFile() can recreate Data with the same settings
+    initThreshold = threshold;
+    initFrame     = frame;
+    initRebin     = rebin;
+
+    // Parse (inputDataDir, evtTag, curApa) from the initial file path
+    TString evtDir  = gSystem->DirName(filename);
+    TString evtTag  = gSystem->BaseName(evtDir);
+    inputDataDir    = gSystem->DirName(evtDir);
+    curApa          = 0;
+    {
+        TString base = gSystem->BaseName(filename);
+        int apos = base.Index("apa");
+        if (apos != kNPOS && apos + 3 < base.Length())
+            curApa = atoi(base.Data() + apos + 3);
+    }
+
+    // Scan inputDataDir for strictly-named <run>_<event> subdirectories
+    {
+        vector<tuple<int,int,TString>> found;
+        TSystemDirectory sdir("inputData", inputDataDir.Data());
+        TList* entries = sdir.GetListOfFiles();
+        if (entries) {
+            TIter nxt(entries);
+            TSystemFile* entry;
+            while ((entry = (TSystemFile*)nxt())) {
+                TString name = entry->GetName();
+                if (name == "." || name == "..") continue;
+                if (!entry->IsDirectory()) continue;
+                // Validate strict <digits>_<digits> format (preserve leading zeros)
+                int underscores = 0;
+                bool valid = true;
+                for (Ssiz_t i = 0; i < name.Length(); ++i) {
+                    char c = name[i];
+                    if (c == '_') {
+                        if (i == 0 || i == name.Length() - 1) { valid = false; break; }
+                        ++underscores;
+                    } else if (!isdigit((unsigned char)c)) {
+                        valid = false; break;
+                    }
+                }
+                if (!valid || underscores != 1) continue;
+                int undx = name.Index('_');
+                TString runStr = name(0, undx);
+                TString evtStr = name(undx + 1, name.Length() - undx - 1);
+                int run = atoi(runStr.Data());
+                int evt = atoi(evtStr.Data());
+                // Probe for at least one apa file (preserve dir-name formatting)
+                TString probe = TString::Format("%s/%s/magnify-run%s-evt%s-apa0.root",
+                    inputDataDir.Data(), name.Data(), runStr.Data(), evtStr.Data());
+                if (gSystem->AccessPathName(probe.Data())) {
+                    probe = TString::Format("%s/%s/magnify-run%s-evt%s-apa1.root",
+                        inputDataDir.Data(), name.Data(), runStr.Data(), evtStr.Data());
+                    if (gSystem->AccessPathName(probe.Data())) continue;
+                }
+                found.emplace_back(run, evt, name);
+            }
+        }
+        sort(found.begin(), found.end(), [](const auto& a, const auto& b) {
+            return get<0>(a) != get<0>(b) ? get<0>(a) < get<0>(b) : get<1>(a) < get<1>(b);
+        });
+        for (auto& e : found) {
+            evtRuns.push_back(get<0>(e));
+            evtNums.push_back(get<1>(e));
+            eventTags.push_back(get<2>(e));
+        }
+    }
+    // Find current event in the list; insert it if not found (safety fallback)
+    curEvtIdx = 0;
+    for (int i = 0; i < (int)eventTags.size(); ++i) {
+        if (eventTags[i] == evtTag) { curEvtIdx = i; break; }
+    }
+    if (eventTags.empty()) {
+        int run = 0, evt = 0;
+        sscanf(evtTag.Data(), "%d_%d", &run, &evt);
+        eventTags.push_back(evtTag);
+        evtRuns.push_back(run);
+        evtNums.push_back(evt);
+        curEvtIdx = 0;
     }
 
     InitConnections();
@@ -160,6 +246,20 @@ void GuiController::InitConnections()
         this,
         "ProcessCanvasEvent(Int_t,Int_t,Int_t,TObject*)"
     );
+
+    // Navigation combos and buttons
+    for (int a = 0; a < 4; ++a)
+        cw->apaCombo->AddEntry(Form("APA %d", a), a);
+    cw->apaCombo->Select(curApa, kFALSE);
+
+    for (int i = 0; i < (int)eventTags.size(); ++i)
+        cw->eventCombo->AddEntry(eventTags[i].Data(), i);
+    cw->eventCombo->Select(curEvtIdx, kFALSE);
+
+    cw->apaCombo->Connect("Selected(Int_t)", "GuiController", this, "OnApaChanged(Int_t)");
+    cw->eventCombo->Connect("Selected(Int_t)", "GuiController", this, "OnEventChanged(Int_t)");
+    cw->prevEvtButton->Connect("Clicked()", "GuiController", this, "PrevEvent()");
+    cw->nextEvtButton->Connect("Clicked()", "GuiController", this, "NextEvent()");
 }
 
 void GuiController::UpdateShowBadChannel()
@@ -1270,6 +1370,108 @@ void GuiController::ProcessRmsCanvasEvent(Int_t ev, Int_t x, Int_t y, TObject* s
 void GuiController::ToggleRmsOverlay()
 {
     ChannelChanged();
+}
+
+void GuiController::OnApaChanged(Int_t id)
+{
+    if (id == curApa) return;
+    curApa = id;
+    ReloadFile();
+}
+
+void GuiController::OnEventChanged(Int_t id)
+{
+    if (id < 0 || id >= (int)eventTags.size()) return;
+    if (id == curEvtIdx) return;
+    curEvtIdx = id;
+    ReloadFile();
+}
+
+void GuiController::PrevEvent()
+{
+    if (curEvtIdx <= 0) return;
+    --curEvtIdx;
+    ReloadFile();
+}
+
+void GuiController::NextEvent()
+{
+    if (curEvtIdx >= (int)eventTags.size() - 1) return;
+    ++curEvtIdx;
+    ReloadFile();
+}
+
+void GuiController::ReloadFile()
+{
+    // Preserve dir-name formatting (e.g. "027409_1" -> run=027409, evt=1)
+    const TString& tag = eventTags[curEvtIdx];
+    int undx = tag.Index('_');
+    TString runStr = (undx > 0) ? TString(tag(0, undx)) : tag;
+    TString evtStr = (undx > 0) ? TString(tag(undx + 1, tag.Length() - undx - 1)) : TString("0");
+    TString path = TString::Format("%s/%s/magnify-run%s-evt%s-apa%d.root",
+        inputDataDir.Data(), tag.Data(), runStr.Data(), evtStr.Data(), curApa);
+    if (gSystem->AccessPathName(path.Data())) {
+        cerr << "ReloadFile: file not found: " << path << endl;
+        return;
+    }
+
+    HideRegionWindow();
+    HideRmsWindow();
+    EraseRegion();
+
+    // Reset analysis caches (hold pointers into old data)
+    for (int p = 0; p < 3; ++p) {
+        delete fftSpec[p];
+        fftSpec[p] = nullptr;
+        fftSelectedCh[p] = -1;
+        rmsResults[p].clear();
+    }
+    rmsLoaded = false;
+
+    for (int i = 1; i <= 9; ++i) {
+        vw->can->cd(i);
+        gPad->Clear();
+    }
+
+    delete data;
+    data = new Data(path.Data(), initThreshold, initFrame.Data(), initRebin);
+
+    // Re-seed control widgets from new data
+    for (int i = 0; i < 3; ++i)
+        cw->threshEntry[i]->SetNumber(data->wfs.at(i)->threshold);
+    cw->zAxisRangeEntry[0]->SetNumber(data->wfs.at(0)->zmin);
+    cw->zAxisRangeEntry[1]->SetNumber(data->wfs.at(0)->zmax);
+    cw->timeRangeEntry[0]->SetNumber(0);
+    cw->timeRangeEntry[1]->SetNumber(data->wfs.at(0)->nTDCs);
+    cw->timeEntry->SetLimits(TGNumberFormat::kNELLimitMinMax, 0, data->wfs.at(0)->nTDCs);
+    cw->badChanelButton->SetState(kButtonUp);
+    cw->badChanelButton->SetToolTipText(TString::Format("U: %lu, V: %lu, Y: %lu",
+        data->wfs.at(0)->lines.size(),
+        data->wfs.at(1)->lines.size(),
+        data->wfs.at(2)->lines.size()));
+
+    // Redraw all 9 pads
+    for (int i = 0; i < 6; ++i) {
+        vw->can->cd(i+1);
+        data->wfs.at(i)->Draw2D();
+    }
+    for (int i = 0; i < 3; ++i) {
+        vw->can->cd(i+7);
+        int chanNo = data->wfs.at(i)->firstChannel;
+        const std::string& comment = data->channel_status[chanNo];
+        data->wfs.at(i)->Draw1D(chanNo, "", comment.c_str());
+        TH1F *h = data->wfs.at(i+3)->Draw1D(chanNo, "same");
+        h->SetLineColor(kRed);
+        hCurrent[i] = h;
+    }
+    vw->can->Modified();
+    vw->can->Update();
+
+    cw->apaCombo->Select(curApa, kFALSE);
+    cw->eventCombo->Select(curEvtIdx, kFALSE);
+
+    mw->SetWindowName(TString::Format("Magnify: run %i, sub-run %i, event %i, apa %i",
+        data->runNo, data->subRunNo, data->eventNo, data->apaNo));
 }
 
 void GuiController::HandleMenu(int id)

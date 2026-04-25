@@ -45,6 +45,21 @@ cd scripts/
 root -l loadClasses.C Magnify.C
 ```
 
+### Event / APA Navigation
+
+The control window has a second row with a **Navigation** group for switching between events and APAs without restarting ROOT:
+
+| Widget | Action |
+| --- | --- |
+| `apa` combo | Switch to a different APA (0–3) of the current event |
+| `event` combo | Jump directly to any discovered event |
+| `<` button | Previous event (same APA) |
+| `>` button | Next event (same APA) |
+
+Events are auto-discovered at startup by scanning the parent directory of the opened file for subdirectories matching `<run>_<event>` (e.g. `027409_1`) that contain at least one `magnify-run<run>-evt<event>-apa0.root` file. Directories with extra suffixes (e.g. `027409_1_sel1`) are skipped. The list is sorted by `(run, event)`.
+
+Switching tears down the active `Data`, opens the new file, and redraws all 9 pads in place; Region Sum / RMS Analysis sub-windows are hidden and their caches are reset.
+
 ### RMS & FFT noise analysis (batch)
 
 Compute per-channel noise RMS and frequency spectra for one or more Magnify files:

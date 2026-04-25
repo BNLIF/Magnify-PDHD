@@ -6,6 +6,8 @@
 #include "TString.h"
 #include "RmsAnalyzer.h"
 
+#include <vector>
+
 class MainWindow;
 class ViewWindow;
 class ControlWindow;
@@ -75,6 +77,12 @@ public:
     void ToggleRmsOverlay();
     void ProcessRmsCanvasEvent(Int_t ev, Int_t x, Int_t y, TObject* selected);
 
+    void OnApaChanged(Int_t id);
+    void OnEventChanged(Int_t id);
+    void PrevEvent();
+    void NextEvent();
+    void ReloadFile();
+
     TString OpenDialog();
 
     MainWindow *mw;
@@ -117,6 +125,17 @@ private:
     TPad*  rmsTopWPad;      // RMS vs wire length, W only
     TPad*  rmsMidPad[3];
     TPad*  rmsBotPad[3];
+
+    // Navigation state
+    TString              inputDataDir;
+    std::vector<TString> eventTags;
+    std::vector<int>     evtRuns;
+    std::vector<int>     evtNums;
+    int                  curEvtIdx;
+    int                  curApa;
+    double               initThreshold;
+    TString              initFrame;
+    int                  initRebin;
 };
 
 #endif
