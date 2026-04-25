@@ -15,6 +15,8 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include <cmath>
 using namespace std;
 
 Waveforms::Waveforms()
@@ -139,18 +141,45 @@ void Waveforms::SetThreshold(TH1I *h, double scaling)
 {
     Clear();
     useChannelThreshold = true;
-    // compute mean non-zero channel threshold for GUI display (in ADC units)
+    // mean non-zero channel threshold for GUI display (in ADC units)
     double sum = 0; int n = 0;
     for (int b = 1; b <= h->GetNbinsX(); ++b) {
         double v = h->GetBinContent(b);
         if (v > 0) { sum += v; ++n; }
     }
-    if (n > 0) threshold = (sum / n) * scaling * fScale;
+    threshold = (n > 0 ? sum / n : 0.0) * scaling * fScale;
+
+    // Per-channel robust noise sigma from |hOrig|, used as a sanity floor on
+    // the per-channel threshold. The Wiener thresholds loaded from the file
+    // are sometimes 0 / anomalously small for individual channels (broken or
+    // skipped channels) or for an entire plane (upstream signal-processing
+    // glitch); without a floor those channels mark every tick as above-
+    // threshold and create ~nTDCs boxes per channel, both stalling the load
+    // and turning the 2D pad into a noise carpet.  Robust sigma via
+    // 1.4826 * median(|x|) is signal-resistant and cheap (one nth_element
+    // pass per channel).
+    const double noiseK = 4.0;
+    std::vector<double> noiseSigma(nChannels + 1, 0.0);  // 1-indexed
+    std::vector<double> tmp; tmp.reserve(nTDCs);
+    for (int i = 1; i <= nChannels; ++i) {
+        tmp.clear();
+        for (int j = 1; j <= nTDCs; ++j)
+            tmp.push_back(std::fabs(hOrig->GetBinContent(i, j)));
+        if (!tmp.empty()) {
+            size_t mid = tmp.size() / 2;
+            std::nth_element(tmp.begin(), tmp.begin() + mid, tmp.end());
+            noiseSigma[i] = 1.4826 * tmp[mid] * fScale;
+        }
+    }
 
     TBox *box = 0;
     cout << fName << ": creating boxes ... " << flush;
+    int floorChans = 0;
     for (int i=1; i<=nChannels; i++) {
-        double channelThreshold = h->GetBinContent(i) * fScale * scaling;
+        double wienerThr = h->GetBinContent(i) * fScale * scaling;
+        double floorThr  = noiseK * noiseSigma[i];
+        double channelThreshold = std::max(wienerThr, floorThr);
+        if (floorThr > wienerThr) ++floorChans;
         for (int j=1; j<=nTDCs; j++) {
             double content = hOrig->GetBinContent(i, j) * fScale;
             if (!isDecon) content = TMath::Abs(content);
@@ -167,7 +196,9 @@ void Waveforms::SetThreshold(TH1I *h, double scaling)
             }
         }
     }
-    cout << boxes.size() <<  " created. " << endl;
+    cout << boxes.size() <<  " created";
+    if (floorChans > 0) cout << " (" << floorChans << " channels used " << noiseK << "σ noise floor)";
+    cout << "." << endl;
 }
 
 
