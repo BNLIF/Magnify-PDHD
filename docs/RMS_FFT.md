@@ -121,8 +121,9 @@ Opened via the **RMS Analysis** button in the control bar.
 |-----------------|--------|
 | **Compute RMS** | Run RMS + FFT on the currently loaded in-memory histograms; write cache |
 | **Load from file** | Read the existing cache file; status label shows `[LOADED+FFT]` or `[LOADED]` for pre-FFT caches |
-| **Show distribution** | Open the 7-panel noise canvas (see below) |
+| **Show distribution** | Open the 9-panel noise canvas (see below) |
 | **Overlay 4σ** checkbox | Draw ±4 × `rms_final` dashed cyan lines on the 1-D waveform pad for the currently selected channel |
+| **Use original waveform** checkbox | Switch source from denoised (`hu_raw/hv_raw/hw_raw`) to raw ADC (`hu_orig/hv_orig/hw_orig`); separate cache file `<file>.orig.rms.root`; toggling auto-loads the matching cache |
 
 ---
 
@@ -166,6 +167,23 @@ one pad per plane.  Clicking a channel in a middle pad:
 **Bottom pads** — frequency spectrum for the most recently clicked channel.
 Initially shows an empty axis labelled "click channel above" (or "no FFT in
 cache" if the cache pre-dates FFT support).  Y scale is linear.
+
+**Channel-FFT sync:** the bottom-row FFT pad updates automatically whenever
+the active channel changes — via the channel entry in the main control window,
+a click on a 2D wire view pad, or a click on the middle (RMS-vs-channel) pad
+inside the distribution window itself.
+
+**Frequency zoom (top control bar):** **Freq min** / **Freq max** entries
+above the 9-pad canvas restrict the X axis of all three FFT pads.  Type a
+value and press Enter to apply; the Y axis auto-scales to the peak within the
+visible frequency range.  Defaults to `0.00 .. 1.00 MHz` (Nyquist).  The
+range persists across channel changes.
+
+**Reference line on the U/V wire-length pad (top control bar):** the second
+control row hosts `x1`, `y1`, `x2`, `y2` entries (default `0, 2.8 → 180, 6.5`)
+and a **Draw line** button.  Clicking the button overlays a dashed black line
+between the two points on the top-middle pad (`rms_top_uv`); each click
+replaces the previous line.
 
 ---
 

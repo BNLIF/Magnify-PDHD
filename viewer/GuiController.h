@@ -74,7 +74,11 @@ public:
     void ComputeRms();
     void LoadRmsFromFile();
     void ShowRmsDistribution();
+    void HideRmsDistWindow();
     void ToggleRmsOverlay();
+    void ToggleRmsUseOrig();
+    void ApplyRmsFreqRange();
+    void DrawUvLine();
     void ProcessRmsCanvasEvent(Int_t ev, Int_t x, Int_t y, TObject* selected);
 
     void OnApaChanged(Int_t id);
@@ -111,13 +115,25 @@ private:
     TGMainFrame*          rmsWindow;
     TGLabel*              rmsStatusLabel;
     TGCheckButton*        rmsOverlayCheck;
+    TGCheckButton*        rmsUseOrigCheck;
+    TGMainFrame*          rmsDistWindow;
     TCanvas*              rmsDistCanvas;
+    TGNumberEntry*        rmsFreqMin;
+    TGNumberEntry*        rmsFreqMax;
+    TGNumberEntry*        rmsLineX1;
+    TGNumberEntry*        rmsLineY1;
+    TGNumberEntry*        rmsLineX2;
+    TGNumberEntry*        rmsLineY2;
+    TLine*                rmsUvLine;
     std::vector<ChannelRms> rmsResults[3];  // per-plane results (U=0,V=1,W=2)
     bool                  rmsLoaded;
 
     // FFT spectra: TH2F(channel × freq-MHz), one per plane; nullptr if not loaded
     TH2F*  fftSpec[3];
     int    fftSelectedCh[3];  // last-clicked channel per plane (-1 = none)
+
+    void UpdateFftSliceForChannel(int plane, int chanNo);
+    void ApplyFreqRangeToBotPad(int plane);
 
     // Named pads inside rmsDistCanvas (owned by the canvas, not us)
     TPad*  rmsTopDistPad;   // per-channel RMS distribution histogram
