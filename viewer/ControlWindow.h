@@ -31,6 +31,7 @@ public:
     TGNumberEntry *threshScaleEntry;
     TGTextButton  *regionSumBtn;
     TGTextButton  *rmsBtn;
+    TGTextButton  *resampCheckBtn;
 
     TGComboBox   *apaCombo;
     TGComboBox   *eventCombo;
