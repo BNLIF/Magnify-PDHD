@@ -154,6 +154,8 @@ private:
 
     // Navigation state
     TString              inputDataDir;
+    TString              fileNamePrefix;  // e.g. "magnify-" (before run%s-evt%s-apa%d)
+    TString              fileNameSuffix;  // e.g. "-dnnron" (after apa digits, before .root)
     std::vector<TString> eventTags;
     std::vector<int>     evtRuns;
     std::vector<int>     evtNums;

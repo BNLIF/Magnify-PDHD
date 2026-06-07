@@ -56,7 +56,7 @@ The control window has a second row with a **Navigation** group for switching be
 | `<` button | Previous event (same APA) |
 | `>` button | Next event (same APA) |
 
-Events are auto-discovered at startup by scanning the parent directory of the opened file for subdirectories matching `<run>_<event>` (e.g. `027409_1`) that contain at least one `magnify-run<run>-evt<event>-apa0.root` file. Directories with extra suffixes (e.g. `027409_1_sel1`) are skipped. The list is sorted by `(run, event)`.
+Events are auto-discovered at startup by scanning the parent directory of the opened file for subdirectories matching `<run>_<event>` (e.g. `027409_1`) that contain at least one file matching the same naming convention as the file that was opened. The file-name prefix (e.g. `magnify-`) and any suffix between the APA number and `.root` (e.g. `-dnnron`) are inferred automatically from the initial file, so non-default naming patterns such as `magnify-run<run>-evt<event>-apa0-dnnron.root` are navigated correctly without any configuration. Directories with extra suffixes (e.g. `027409_1_sel1`) are skipped. The list is sorted by `(run, event)`.
 
 Switching tears down the active `Data`, opens the new file, and redraws all 9 pads in place; Region Sum / RMS Analysis sub-windows are hidden and their caches are reset.
 
